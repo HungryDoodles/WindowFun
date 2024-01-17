@@ -58,7 +58,7 @@ int main()
     uint3 tris[] =
     {
         // x+
-        {0, 1, 2}//, {3,1,2}
+        {3, 1, 2}//, {3,1,2}
     };
 
 
@@ -79,13 +79,13 @@ int main()
 
         /* Render */
         Clear();
-        /*for (auto& idx : idxs)
+        for (auto& idx : idxs)
         {
             float4 p1, p2;
             p1 = linalg::mul(model, float4(verts[idx.x], 1));
             p2 = linalg::mul(model, float4(verts[idx.y], 1));
             DrawLine(p1.xyz(), p2.xyz(), colors[idx.x], colors[idx.y]);
-        }*/
+        }
         for (auto& idx : tris) 
         {
             float4 p1, p2, p3;

@@ -262,7 +262,8 @@ void _DrawTriangleFlatBottom(
 	float curx1 = v1.x;
 	float curx2 = v1.x;
 
-	for (int scanlineY = (int)v1.y; scanlineY <= v2.y; scanlineY++)
+	int counter = 0;
+	for (int scanlineY = v1.y; scanlineY < v2.y && counter <= HEIGHT; scanlineY += 1, counter++)
 	{
 		float alpha = (scanlineY - v1.y) / (v2.y - v1.y);
 		float depth12 = _Lerp(v1.z, v2.z, alpha);
@@ -288,7 +289,8 @@ void _DrawTriangleFlatTop(
 	float curx1 = v3.x;
 	float curx2 = v3.x;
 
-	for (int scanlineY = (int)v3.y; scanlineY <= v1.y; scanlineY++)
+	int counter = 0;
+	for (int scanlineY = v3.y; scanlineY > v1.y && counter <= HEIGHT; scanlineY -= 1, counter++)
 	{
 		float alpha = (scanlineY - v1.y) / (v3.y - v1.y);
 		float depth13 = _Lerp(v1.z, v3.z, alpha);
@@ -298,8 +300,8 @@ void _DrawTriangleFlatTop(
 		float3 w13 = _Lerp(w1, w3, alpha);
 		float3 w23 = _Lerp(w2, w3, alpha);
 		_DrawLineScreen(float3{ curx1, (float)scanlineY, depth13 }, float3{ curx2, (float)scanlineY, depth23 }, c13, c23, w13, w23);
-		curx1 += invslope1;
-		curx2 += invslope2;
+		curx1 -= invslope1;
+		curx2 -= invslope2;
 	}
 }
 void _DrawTriangleScreen(
