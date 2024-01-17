@@ -136,6 +136,11 @@ void Finalize()
     }
 }
 
+template<typename T>
+inline T _Lerp(T a, T b, float alpha) 
+{
+	return (1.0f - alpha) * a + alpha * b;
+}
 // Convert to pixel coords, but don't touch the depth
 inline float4 _ToPixelCoords(float4 screenSpace) 
 {
@@ -245,6 +250,85 @@ void _DrawLineScreen(float3 v1, float3 v2, float3 v1Color, float3 v2Color, float
 		}
 	}
 }
+// Assumes y is sorted sorted
+void _DrawTriangleFlatBottom(
+	float3 v1, float3 v2, float3 v3,
+	float3 c1, float3 c2, float3 c3,
+	float3 w1, float3 w2, float3 w3) 
+{
+	float invslope1 = (v2.x - v1.x) / (v2.y - v1.y);
+	float invslope2 = (v3.x - v1.x) / (v3.y - v1.y);
+
+	float curx1 = v1.x;
+	float curx2 = v1.x;
+
+	for (int scanlineY = (int)v1.y; scanlineY <= v2.y; scanlineY++)
+	{
+		float alpha = (scanlineY - v1.y) / (v2.y - v1.y);
+		float depth12 = _Lerp(v1.z, v2.z, alpha);
+		float depth13 = _Lerp(v1.z, v3.z, alpha);
+		float3 c12 = _Lerp(c1, c2, alpha);
+		float3 c13 = _Lerp(c1, c3, alpha);
+		float3 w12 = _Lerp(w1, w2, alpha);
+		float3 w13 = _Lerp(w1, w3, alpha);
+		_DrawLineScreen(float3{ curx1, (float)scanlineY, depth12 }, float3{ curx2, (float)scanlineY, depth13 }, c12, c13, w12, w13);
+		curx1 += invslope1;
+		curx2 += invslope2;
+	}
+}
+// Assumes y is sorted sorted
+void _DrawTriangleFlatTop(
+	float3 v1, float3 v2, float3 v3,
+	float3 c1, float3 c2, float3 c3,
+	float3 w1, float3 w2, float3 w3)
+{
+	float invslope1 = (v3.x - v1.x) / (v3.y - v1.y);
+	float invslope2 = (v3.x - v2.x) / (v3.y - v2.y);
+
+	float curx1 = v3.x;
+	float curx2 = v3.x;
+
+	for (int scanlineY = (int)v3.y; scanlineY <= v1.y; scanlineY++)
+	{
+		float alpha = (scanlineY - v1.y) / (v3.y - v1.y);
+		float depth13 = _Lerp(v1.z, v3.z, alpha);
+		float depth23 = _Lerp(v2.z, v3.z, alpha);
+		float3 c13 = _Lerp(c1, c3, alpha);
+		float3 c23 = _Lerp(c2, c3, alpha);
+		float3 w13 = _Lerp(w1, w3, alpha);
+		float3 w23 = _Lerp(w2, w3, alpha);
+		_DrawLineScreen(float3{ curx1, (float)scanlineY, depth13 }, float3{ curx2, (float)scanlineY, depth23 }, c13, c23, w13, w23);
+		curx1 += invslope1;
+		curx2 += invslope2;
+	}
+}
+void _DrawTriangleScreen(
+	float3 v1, float3 v2, float3 v3,
+	float3 c1, float3 c2, float3 c3, 
+	float3 w1, float3 w2, float3 w3)
+{
+	if (v2.y < v1.y) { std::swap(v1, v2); std::swap(c1, c2); std::swap(w1, w2); }
+	if (v3.y < v1.y) { std::swap(v3, v1); std::swap(c3, c1); std::swap(w3, w1); }
+	if (v3.y < v2.y) { std::swap(v3, v2); std::swap(c3, c2); std::swap(w3, w2); }
+
+	if (v2.y == v3.y) 
+	{
+		_DrawTriangleFlatBottom(v1,v2,v3,c1,c2,c3,w1,w2,w3);
+	}
+	else if (v1.y == v2.y) 
+	{
+		_DrawTriangleFlatTop(v1,v2,v3,c1,c2,c3,w1,w2,w3);
+	}
+	else 
+	{
+		float alpha = (v2.y - v1.y) / (v3.y - v1.y);
+		float3 v4 = float3(_Lerp(v1.x, v3.x, alpha), v2.y, _Lerp(v1.z, v3.z, alpha));
+		float3 c4 = _Lerp(c1, c3, alpha);
+		float3 w4 = _Lerp(w1, w3, alpha);
+		_DrawTriangleFlatBottom(v1,v2,v4,c1,c2,c4,w1,w2,w4);
+		_DrawTriangleFlatTop(v2,v4,v3,c2,c4,c3,w2,w4,w3);
+	}
+}
 
 
 
@@ -261,4 +345,20 @@ void DrawLine(float3 v1, float3 v2, float3 v1Color, float3 v2Color)
 	v2Screen = _ToPixelCoords(v2Screen);
 
 	_DrawLineScreen(v1Screen.xyz(), v2Screen.xyz(), v1Color, v2Color, v1, v2);
+}
+
+void DrawTriangle(float3 v1, float3 v2, float3 v3, float3 v1Color, float3 v2Color, float3 v3Color) 
+{
+	float4 v1Screen = linalg::mul(VP, float4(v1, 1));
+	v1Screen /= v1Screen.w;
+	float4 v2Screen = linalg::mul(VP, float4(v2, 1));
+	v2Screen /= v2Screen.w;
+	float4 v3Screen = linalg::mul(VP, float4(v3, 1));
+	v3Screen /= v3Screen.w;
+
+	v1Screen = _ToPixelCoords(v1Screen);
+	v2Screen = _ToPixelCoords(v2Screen);
+	v3Screen = _ToPixelCoords(v3Screen);
+
+	_DrawTriangleScreen(v1Screen.xyz(), v2Screen.xyz(), v3Screen.xyz(), v1Color, v2Color, v3Color, v1, v2, v3);
 }

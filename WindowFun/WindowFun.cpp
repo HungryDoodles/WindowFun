@@ -37,14 +37,14 @@ int main()
     };
     float3 colors[] =
     {
-        {+1,    0.8,    0.8},
-        {+1,    0.8,    +1},
-        {+1,    +1,     0.8},
+        {+1,    0.8f,    0.8f},
+        {+1,    0.8f,    +1},
+        {+1,    +1,     0.8f},
         {+1,    +1,     +1},
-        {0.8,   0.8,    0.8},
-        {0.8,   0.8,    +1},
-        {0.8,   +1,     0.8},
-        {0.8,   +1,     +1},
+        {0.8f,   0.8f,    0.8f},
+        {0.8f,   0.8f,    +1},
+        {0.8f,   +1,     0.8f},
+        {0.8f,   +1,     +1},
     };
     uint2 idxs[] =
     {
@@ -54,6 +54,11 @@ int main()
         {2, 3}, {3, 7}, {7, 6}, {6, 2},
         // supports
         {0, 2}, {1, 3}, {4, 6}, {5, 7}
+    };
+    uint3 tris[] =
+    {
+        // x+
+        {0, 1, 2}//, {3,1,2}
     };
 
 
@@ -74,12 +79,20 @@ int main()
 
         /* Render */
         Clear();
-        for (auto& idx : idxs) 
+        /*for (auto& idx : idxs)
         {
             float4 p1, p2;
             p1 = linalg::mul(model, float4(verts[idx.x], 1));
             p2 = linalg::mul(model, float4(verts[idx.y], 1));
             DrawLine(p1.xyz(), p2.xyz(), colors[idx.x], colors[idx.y]);
+        }*/
+        for (auto& idx : tris) 
+        {
+            float4 p1, p2, p3;
+            p1 = linalg::mul(model, float4(verts[idx.x], 1));
+            p2 = linalg::mul(model, float4(verts[idx.y], 1));
+            p3 = linalg::mul(model, float4(verts[idx.z], 1));
+            DrawTriangle(p1.xyz(), p2.xyz(), p3.xyz(), colors[idx.x], colors[idx.y], colors[idx.z]);
         }
         DrawLine(float3{ -1, 0, 0 }, float3{ 1, 0, 0 }, float3{ 1,0,0 }, float3{ 1,0,0 });
         DrawLine(float3{ 0, -1, 0 }, float3{ 0, 1, 0 }, float3{ 0,1,0 }, float3{ 0,1,0 });
