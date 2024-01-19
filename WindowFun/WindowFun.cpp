@@ -22,7 +22,7 @@ int main()
         {
             float3 {0.6f, 0, 0}, // Light pos
             float3 {1, 0.8f, 0.8f}, // Light Color
-            0.2f
+            1.2f
         });
     float3 verts[] =
     {
@@ -58,7 +58,7 @@ int main()
     uint3 tris[] =
     {
         // x+
-        {3, 1, 2}//, {3,1,2}
+        {0, 1, 2}, {3,1,2}
     };
 
 
@@ -68,9 +68,10 @@ int main()
         float secondsSinceStart = chrono::duration_cast<chrono::microseconds>(chrono::steady_clock::now() - startTime).count() * 1e-6f;
 
         float rotAngle = secondsSinceStart;
+        const float scale = 1.5f;
         model = linalg::identity;
         model = linalg::mul(model, linalg::translation_matrix(float3{ 0, -0.4f, 0.0f }));
-        model = linalg::mul(model, linalg::scaling_matrix(float3{ 0.5f, 0.5f, 0.5f }));
+        model = linalg::mul(model, linalg::scaling_matrix(float3{ scale,scale,scale }));
         model = linalg::mul(model, linalg::rotation_matrix(linalg::rotation_quat(float3{0,1,0}, rotAngle)));
         //float4x4 viewMat = linalg::translation_matrix(float3{ std::sinf(secondsSinceStart * 4.9f) * 0.1f + 0.2f, std::cosf(secondsSinceStart * 7.71f) * 0.1f + 0.5f, -1.5f });
         float4x4 viewMat = linalg::translation_matrix(float3{ 0.2f, 0.5f, -1.5f });
@@ -86,7 +87,7 @@ int main()
             p2 = linalg::mul(model, float4(verts[idx.y], 1));
             DrawLine(p1.xyz(), p2.xyz(), colors[idx.x], colors[idx.y]);
         }
-        for (auto& idx : tris) 
+        for (auto& idx : tris)
         {
             float4 p1, p2, p3;
             p1 = linalg::mul(model, float4(verts[idx.x], 1));

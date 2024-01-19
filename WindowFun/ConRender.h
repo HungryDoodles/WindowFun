@@ -179,12 +179,15 @@ inline void _SetPixel/*Safely*/(float x, float y, float3 color, float depth, flo
 }
 
 // Geometry functions (screen space in [-1, 1] ranges)
-void _DrawLineScreen(float3 v1, float3 v2, float3 v1Color, float3 v2Color, float3 v1WorldSpace, float3 v2WorldSpace)
+void _DrawLineScreen(float4 v1, float4 v2, float3 v1Color, float3 v2Color, float3 v1WorldSpace, float3 v2WorldSpace)
 {
-	float& x1 = v1.x;
-	float& x2 = v2.x;
-	float& y1 = v1.y;
-	float& y2 = v2.y;
+	float4 p1 = _ToPixelCoords(v1);
+	float4 p2 = _ToPixelCoords(v2);
+
+	float& x1 = p1.x;
+	float& x2 = p2.x;
+	float& y1 = p1.y;
+	float& y2 = p2.y;
 
 	float xdiff = (x2 - x1);
 	float ydiff = (y2 - y1);
@@ -250,9 +253,11 @@ void _DrawLineScreen(float3 v1, float3 v2, float3 v1Color, float3 v2Color, float
 		}
 	}
 }
+
+/*
 // Assumes y is sorted sorted
 void _DrawTriangleFlatBottom(
-	float3 v1, float3 v2, float3 v3,
+	float4 v1, float4 v2, float4 v3,
 	float3 c1, float3 c2, float3 c3,
 	float3 w1, float3 w2, float3 w3) 
 {
@@ -272,14 +277,14 @@ void _DrawTriangleFlatBottom(
 		float3 c13 = _Lerp(c1, c3, alpha);
 		float3 w12 = _Lerp(w1, w2, alpha);
 		float3 w13 = _Lerp(w1, w3, alpha);
-		_DrawLineScreen(float3{ curx1, (float)scanlineY, depth12 }, float3{ curx2, (float)scanlineY, depth13 }, c12, c13, w12, w13);
+		_DrawLineScreen(float4{ curx1, (float)scanlineY, depth12 }, float4{ curx2, (float)scanlineY, depth13 }, c12, c13, w12, w13);
 		curx1 += invslope1;
 		curx2 += invslope2;
 	}
 }
 // Assumes y is sorted sorted
 void _DrawTriangleFlatTop(
-	float3 v1, float3 v2, float3 v3,
+	float4 v1, float4 v2, float4 v3,
 	float3 c1, float3 c2, float3 c3,
 	float3 w1, float3 w2, float3 w3)
 {
@@ -305,7 +310,7 @@ void _DrawTriangleFlatTop(
 	}
 }
 void _DrawTriangleScreen(
-	float3 v1, float3 v2, float3 v3,
+	float4 v1, float4 v2, float4 v3,
 	float3 c1, float3 c2, float3 c3, 
 	float3 w1, float3 w2, float3 w3)
 {
@@ -331,6 +336,54 @@ void _DrawTriangleScreen(
 		_DrawTriangleFlatTop(v2,v4,v3,c2,c4,c3,w2,w4,w3);
 	}
 }
+*/
+
+// Guarantees a triangle, but flickers on Y coordinate
+void _DrawTriangleBarycentric(
+	float4 v1, float4 v2, float4 v3,
+	float3 c1, float3 c2, float3 c3,
+	float3 w1, float3 w2, float3 w3) 
+{
+	float4 p1 = _ToPixelCoords(v1);
+	float4 p2 = _ToPixelCoords(v2);
+	float4 p3 = _ToPixelCoords(v3);
+
+	float maxX = std::max(p1.x, std::max(p2.x, p3.x));
+	float minX = std::min(p1.x, std::min(p2.x, p3.x));
+	float maxY = std::max(p1.y, std::max(p2.y, p3.y));
+	float minY = std::min(p1.y, std::min(p2.y, p3.y));
+	// Failsafe
+	maxX = std::min(maxX, float(WIDTH));
+	minX = std::max(minX, 0.0f);
+	maxY = std::min(maxY, float(HEIGHT));
+	minY = std::max(minY, 0.0f);
+
+	float2 d21 = float2(p2.x - p1.x, p2.y - p1.y);
+	float2 d31 = float2(p3.x - p1.x, p3.y - p1.y);
+	float d1x2_inv = 1.0f / (d21.x * d31.y - d21.y * d31.x);
+
+	for (int x = minX; x <= maxX; ++x) 
+	{
+		for (int y = minY; y <= maxY; ++y) 
+		{
+			float2 p = float2(x, y) - float2(p1.x, p1.y);
+
+			float alpha2 = (p.x * d31.y - p.y * d31.x) * d1x2_inv; // alpha towards point 2
+			float alpha3 = (d21.x * p.y - d21.y * p.x) * d1x2_inv; // alpha towards point 3
+			float alpha1 = 1.0f - alpha2 - alpha3;
+
+			if ((alpha2 >= 0) && (alpha3 >= 0) && (alpha2 + alpha3 <= 1)) 
+			{
+				//float4 v = v1 * alpha1 + v2 * alpha2 + v3 * alpha3;
+				float z = v1.z * alpha1 + v2.z * alpha2 + v3.z * alpha3;
+				float3 c = c1 * alpha1 + c2 * alpha2 + c3 * alpha3;
+				float3 w = w1 * alpha1 + w2 * alpha2 + w3 * alpha3;
+
+				_SetPixel(x, y, c, z, w);
+			}
+		}
+	}
+}
 
 
 
@@ -338,29 +391,32 @@ void _DrawTriangleScreen(
 // General Draw functions
 void DrawLine(float3 v1, float3 v2, float3 v1Color, float3 v2Color) 
 {
-	float4 v1Screen = linalg::mul(VP, float4(v1, 1));
-	v1Screen /= v1Screen.w;
-	float4 v2Screen = linalg::mul(VP, float4(v2, 1));
-	v2Screen /= v2Screen.w;
+	float4 v1Proj = linalg::mul(VP, float4(v1, 1));
+	v1Proj /= v1Proj.w;
+	float4 v2Proj = linalg::mul(VP, float4(v2, 1));
+	v2Proj /= v2Proj.w;
 
-	v1Screen = _ToPixelCoords(v1Screen);
-	v2Screen = _ToPixelCoords(v2Screen);
+	//v1Proj = _ToPixelCoords(v1Proj);
+	//v2Proj = _ToPixelCoords(v2Proj);
 
-	_DrawLineScreen(v1Screen.xyz(), v2Screen.xyz(), v1Color, v2Color, v1, v2);
+	_DrawLineScreen(v1Proj, v2Proj, v1Color, v2Color, v1, v2);
 }
 
 void DrawTriangle(float3 v1, float3 v2, float3 v3, float3 v1Color, float3 v2Color, float3 v3Color) 
 {
-	float4 v1Screen = linalg::mul(VP, float4(v1, 1));
-	v1Screen /= v1Screen.w;
-	float4 v2Screen = linalg::mul(VP, float4(v2, 1));
-	v2Screen /= v2Screen.w;
-	float4 v3Screen = linalg::mul(VP, float4(v3, 1));
-	v3Screen /= v3Screen.w;
+	float4 v1Proj = linalg::mul(VP, float4(v1, 1));
+	v1Proj /= v1Proj.w;
+	float4 v2Proj = linalg::mul(VP, float4(v2, 1));
+	v2Proj /= v2Proj.w;
+	float4 v3Proj = linalg::mul(VP, float4(v3, 1));
+	v3Proj /= v3Proj.w;
 
-	v1Screen = _ToPixelCoords(v1Screen);
+	/*v1Screen = _ToPixelCoords(v1Screen);
 	v2Screen = _ToPixelCoords(v2Screen);
-	v3Screen = _ToPixelCoords(v3Screen);
+	v3Screen = _ToPixelCoords(v3Screen);*/
 
-	_DrawTriangleScreen(v1Screen.xyz(), v2Screen.xyz(), v3Screen.xyz(), v1Color, v2Color, v3Color, v1, v2, v3);
+	// Broken
+	//_DrawTriangleScreen(v1Proj, v2Proj, v3Proj, v1Color, v2Color, v3Color, v1, v2, v3);
+
+	_DrawTriangleBarycentric(v1Proj, v2Proj, v3Proj, v1Color, v2Color, v3Color, v1, v2, v3);
 }
