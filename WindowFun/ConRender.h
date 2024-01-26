@@ -160,22 +160,24 @@ inline bool _PixelClose(float a, float b)
 {
     return std::abs(a - b) > 0.25f;
 }
-inline void _SetPixel/*Safely*/(float x, float y, float3 color, float depth, float3 worldSpace = {0,0,0})
+inline bool _SetPixel/*Safely*/(float x, float y, float3 color, float depth, float3 worldSpace = {0,0,0})
 {
 	if (x < 0 || y < 0 || x >= WIDTH || y >= HEIGHT)
-		return;
+		return false;
 
 	if (depth < 0) // discard back
-		return;
+		return false;
 
 	int index = (int)x + (int)y * WIDTH;
 
 	if (depthBuffer[index] < depth) // discard overlayed
-		return;
+		return false;
 
 	depthBuffer[index] = depth;
 	colorBuffer[index] = color;
 	worldSpaceBuffer[index] = worldSpace;
+
+	return true;
 }
 
 // Geometry functions (screen space in [-1, 1] ranges)
@@ -215,14 +217,16 @@ void _DrawLineScreen(float4 v1, float4 v2, float3 v1Color, float3 v2Color, float
 
 		float slope = ydiff / xdiff;
 		int i = 0;
-		for (float x = xmin; x <= xmax && i < WIDTH * 2; x += 1.0f, i++)
+		int drawn = 0;
+		for (float x = xmin; x <= xmax && drawn <= WIDTH; x += 1.0f, i++)
 		{
 			float y = y1 + ((x - x1) * slope);
 			float alpha = (x - x1) / xdiff;
 			float3 color = v1Color + ((v2Color - v1Color) * alpha);
 			float3 ws = v1WorldSpace + ((v2WorldSpace - v1WorldSpace) * alpha);
 			float depth = v1.z + ((v2.z - v1.z) * alpha);
-			_SetPixel(x, y, color, depth, ws);
+			if (_SetPixel(x, y, color, depth, ws))
+				++drawn;
 		}
 	}
 	else 
@@ -242,14 +246,16 @@ void _DrawLineScreen(float4 v1, float4 v2, float3 v1Color, float3 v2Color, float
 
 		float slope = xdiff / ydiff;
 		int i = 0;
-		for (float y = ymin; y <= ymax && i < WIDTH * 2; y += 1.0f, i++) 
+		int drawn = 0;
+		for (float y = ymin; y <= ymax && drawn < WIDTH * 2; y += 1.0f, i++) 
 		{
 			float x = x1 + ((y - y1) * slope);
 			float alpha = (y - y1) / ydiff;
 			float3 color = v1Color + ((v2Color - v1Color) * alpha);
 			float3 ws = v1WorldSpace + ((v2WorldSpace - v1WorldSpace) * alpha);
 			float depth = v1.z + ((v2.z - v1.z) * alpha);
-			_SetPixel(x, y, color, depth, ws);
+			if (_SetPixel(x, y, color, depth, ws))
+				++drawn;
 		}
 	}
 }
@@ -392,9 +398,9 @@ void _DrawTriangleBarycentric(
 void DrawLine(float3 v1, float3 v2, float3 v1Color, float3 v2Color) 
 {
 	float4 v1Proj = linalg::mul(VP, float4(v1, 1));
-	v1Proj /= v1Proj.w;
+	v1Proj /= v1Proj.w * (std::signbit(v1Proj.w) ? -1 : 1);
 	float4 v2Proj = linalg::mul(VP, float4(v2, 1));
-	v2Proj /= v2Proj.w;
+	v2Proj /= v2Proj.w * (std::signbit(v2Proj.w) ? -1 : 1);
 
 	//v1Proj = _ToPixelCoords(v1Proj);
 	//v2Proj = _ToPixelCoords(v2Proj);
@@ -405,11 +411,11 @@ void DrawLine(float3 v1, float3 v2, float3 v1Color, float3 v2Color)
 void DrawTriangle(float3 v1, float3 v2, float3 v3, float3 v1Color, float3 v2Color, float3 v3Color) 
 {
 	float4 v1Proj = linalg::mul(VP, float4(v1, 1));
-	v1Proj /= v1Proj.w;
+	v1Proj /= v1Proj.w * (std::signbit(v1Proj.w) ? -1 : 1);
 	float4 v2Proj = linalg::mul(VP, float4(v2, 1));
-	v2Proj /= v2Proj.w;
+	v2Proj /= v2Proj.w * (std::signbit(v2Proj.w) ? -1 : 1);
 	float4 v3Proj = linalg::mul(VP, float4(v3, 1));
-	v3Proj /= v3Proj.w;
+	v3Proj /= v3Proj.w * (std::signbit(v3Proj.w) ? -1 : 1);
 
 	/*v1Screen = _ToPixelCoords(v1Screen);
 	v2Screen = _ToPixelCoords(v2Screen);

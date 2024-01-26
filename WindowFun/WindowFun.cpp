@@ -8,7 +8,7 @@
 
 using namespace std;
 
-int main()
+int main_old()
 {
     InitConsoleBuffer();
 
@@ -72,7 +72,7 @@ int main()
         model = linalg::identity;
         model = linalg::mul(model, linalg::translation_matrix(float3{ 0, -0.4f, 0.0f }));
         model = linalg::mul(model, linalg::scaling_matrix(float3{ scale,scale,scale }));
-        model = linalg::mul(model, linalg::rotation_matrix(linalg::rotation_quat(float3{0,1,0}, rotAngle)));
+        model = linalg::mul(model, linalg::rotation_matrix(linalg::rotation_quat(float3{0,1,0}, rotAngle*0.2f)));
         //float4x4 viewMat = linalg::translation_matrix(float3{ std::sinf(secondsSinceStart * 4.9f) * 0.1f + 0.2f, std::cosf(secondsSinceStart * 7.71f) * 0.1f + 0.5f, -1.5f });
         float4x4 viewMat = linalg::translation_matrix(float3{ 0.2f, 0.5f, -1.5f });
         viewMat = linalg::mul(viewMat, linalg::rotation_matrix(linalg::rotation_quat(float3{ 0,1,0 }, 0.2f)));
