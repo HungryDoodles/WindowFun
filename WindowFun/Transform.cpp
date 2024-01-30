@@ -5,7 +5,7 @@ using namespace std;
 using namespace linalg;
 using namespace linalg::aliases;
 
-Transform::Transform() : transform(identity)
+Transform::Transform() : transform(linalg::identity)
 {
 
 }

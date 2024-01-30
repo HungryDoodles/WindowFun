@@ -4,7 +4,7 @@
 
 #include "Transform.h"
 
-class Mesh : Transform
+class Mesh : public Transform
 {
 public:
 	Mesh();
