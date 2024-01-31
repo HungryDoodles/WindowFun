@@ -10,7 +10,7 @@ Transform::Transform() : transform(linalg::identity)
 
 }
 
-linalg::aliases::float4x4 Transform::GetMatrix()
+linalg::aliases::float4x4 Transform::GetMatrix() const
 {
 	return transform;
 }

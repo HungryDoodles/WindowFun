@@ -139,6 +139,7 @@
   <ItemGroup>
     <ClCompile Include="Camera.cpp" />
     <ClCompile Include="ConRender.cpp" />
+    <ClCompile Include="input.cpp" />
     <ClCompile Include="Mesh.cpp" />
     <ClCompile Include="Source.cpp" />
     <ClCompile Include="Transform.cpp" />
@@ -147,6 +148,7 @@
   <ItemGroup>
     <ClInclude Include="Camera.h" />
     <ClInclude Include="ConRender.h" />
+    <ClInclude Include="input.h" />
     <ClInclude Include="linalg.h" />
     <ClInclude Include="Mesh.h" />
     <ClInclude Include="ShaderDeclare.h" />

@@ -6,7 +6,7 @@ class Transform
 public:
 	Transform();
 
-	linalg::aliases::float4x4 GetMatrix();
+	linalg::aliases::float4x4 GetMatrix() const;
 	void SetTransform(const linalg::aliases::float4x4& t);
 	void SetTransform(const linalg::aliases::float3& pos, const linalg::aliases::float3& rotation = {0, 0, 0}, const linalg::aliases::float3& scale = { 1, 1, 1 });
 	void Rotate(const linalg::aliases::float3& euler);
@@ -16,7 +16,7 @@ public:
 protected:
 	linalg::aliases::float4x4 transform;
 
-	inline linalg::aliases::float4x4 GetRotEuler(const linalg::aliases::float3& eulers) 
+	inline linalg::aliases::float4x4 GetRotEuler(const linalg::aliases::float3& eulers) const 
 	{
 		float sx = sin(eulers.x), cx = cos(eulers.x);
 		float sy = sin(eulers.y), cy = cos(eulers.y);
