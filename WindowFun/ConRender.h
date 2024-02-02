@@ -12,8 +12,8 @@
 #include "linalg.h"
 using namespace linalg::aliases;
 
-#define WIDTH 100
-#define HEIGHT 50
+#define WIDTH 400
+#define HEIGHT 200
 
 struct LIGHT_INFO 
 {
@@ -48,7 +48,7 @@ void Clear();
 
 void Blit();
 
-void SetPerspective(float fovy, float aspect = (float)WIDTH / HEIGHT * 0.5f, float near = 0.01f, float far = 100.f);
+void SetPerspective(float fovy, float aspect = (float)WIDTH / HEIGHT * 0.5f, float near = 0.01f, float far = 1000.f);
 // Just a shortcut
 void SetView(float4x4 viewMat);
 
@@ -139,3 +139,5 @@ void _DrawTriangleBarycentric(
 void DrawLine(float3 v1, float3 v2, float3 v1Color, float3 v2Color);
 
 void DrawTriangle(float3 v1, float3 v2, float3 v3, float3 v1Color, float3 v2Color, float3 v3Color);
+
+void DrawTextOnScreen(const char* text, int x, int y);

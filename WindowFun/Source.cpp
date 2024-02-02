@@ -12,7 +12,7 @@
 #include "Mesh.h"
 #include "Camera.h"
 
-constexpr int numCubes = 20;
+constexpr int numCubes = 1000;
 
 using namespace std;
 
@@ -22,7 +22,7 @@ struct CameraLook
     float2 rot;
 };
 
-void MoveCamera(const DirectInput& input, Camera& camera, CameraLook& look, float speed, float lookSens, float smoothAlpha = 0.2f);
+void MoveCamera(const DirectInput& input, Camera& camera, CameraLook& look, float speed, float lookSens, float smoothAlpha = 0.3f);
 
 int main() 
 {
@@ -33,23 +33,27 @@ int main()
 	InitConsoleBuffer();
 
 	float lastFrameTime = 0.016f;
+    float lastRealFrameTime = 0;
+    char screenTextBuf[WIDTH * 2];
+    screenTextBuf[WIDTH * 2 - 1] = '\0';
 
     std::default_random_engine randEngine;
-    std::uniform_real_distribution<float> rand(-10.0f, 10.0f);
+    std::uniform_real_distribution<float> rand(-100.0f, 100.0f);
+    std::uniform_real_distribution<float> colorRand(0, 1.0f);
 
 
     lights.push_back(
         {
             float3 {0, 0, 0}, // Light pos
             float3 {1.0f, 1.0f, 1.0f}, // Light Color
-            10.f
+            1000.f
         });
 
     lights.push_back(
         {
             float3 {0.6f, 0, 0}, // Light pos
             float3 {1, 0.8f, 0.8f}, // Light Color
-            10.f
+            1000.f
         });
 
     Camera camera;
@@ -59,7 +63,7 @@ int main()
     for (int i = 0; i < numCubes; ++i) 
     {
         float alpha = i / float(numCubes);
-        mesh[i] = Mesh::MakeCube_Tris(2.0f, float3{1.0, 1.0f - alpha, alpha});
+        mesh[i] = Mesh::MakeCube_Tris(2.0f, float3{ colorRand(randEngine), colorRand(randEngine), colorRand(randEngine) });
         mesh[i].Translate(float3{ rand(randEngine), rand(randEngine), rand(randEngine) });
     }
 
@@ -68,8 +72,8 @@ int main()
     // Ticking
     while (true) 
     {
-        dinput.Update();
         auto startTime = chrono::steady_clock::now();
+        dinput.Update();
 
         /*for (int i = 0; i < mesh.size(); ++i) 
         {
@@ -79,15 +83,20 @@ int main()
         // Drawing
         Clear();
         MoveCamera(dinput, camera, look, lastFrameTime * 8, 0.004f);
-        lights[0].position = look.pos;
+        lights[0].position = -look.pos;
         camera.Apply();
         for (int i = 0; i < mesh.size(); ++i)
             mesh[i].Draw();
         Finalize();
+
+        sprintf_s(screenTextBuf, "Framerate: %f fps", (1 / lastRealFrameTime));
+        DrawTextOnScreen(screenTextBuf, 0, 0);
         Blit();
 
         auto endTime = chrono::steady_clock::now();
         lastFrameTime = float(chrono::duration_cast<chrono::microseconds>(endTime - startTime).count()) * 1e-6f;
+        lastRealFrameTime = lastFrameTime;
+        
         if (lastFrameTime < 1.f / 60)
             this_thread::sleep_for(std::chrono::microseconds((int)((1.f/60 - lastFrameTime) * 1e6)));
         lastFrameTime = max(0.0166666f, lastFrameTime);
@@ -135,7 +144,7 @@ void MoveCamera(const DirectInput& input, Camera& camera, CameraLook& look, floa
     right = mul(rotY, right);
 
     if (input.Key(DIK_LSHIFT))
-        speed *= 3;
+        speed *= 15;
 
     if (input.Key(DIK_W))
         look.pos += fwd * speed;

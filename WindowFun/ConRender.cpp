@@ -320,3 +320,19 @@ void DrawTriangle(float3 v1, float3 v2, float3 v3, float3 v1Color, float3 v2Colo
 
 	_DrawTriangleBarycentric(v1Proj, v2Proj, v3Proj, v1Color, v2Color, v3Color, v1, v2, v3);
 }
+
+
+void DrawTextOnScreen(const char* text, int x, int y) 
+{
+	int strLen = strlen(text);
+
+	if (y < 0 || y >= HEIGHT)
+		return;
+
+	for (int i = std::max(0, x); i < x + strLen; ++i) 
+	{
+		int index = i + WIDTH * y;
+		CHAR_INFO& out = consoleBuffer[index];
+		out.Char.AsciiChar = text[i - x];
+	}
+}
